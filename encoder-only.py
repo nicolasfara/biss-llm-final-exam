@@ -8,6 +8,7 @@ import time
 from utils import *
 import evaluate
 import matplotlib.pyplot as plt
+from sklearn.metrics import f1_score
 from tqdm.auto import tqdm
 
 model_name = "Musixmatch/umberto-commoncrawl-cased-v1"
@@ -25,7 +26,7 @@ learning_rate = 5e-6
 # Name of the fine_tuned_model
 output_model_name = "best_model.pickle"
 # Number of training epochs
-num_train_epochs = 6
+num_train_epochs = 30
 
 
 if __name__ == "__main__":
@@ -97,7 +98,7 @@ if __name__ == "__main__":
     progress_bar = tqdm(range(num_training_steps))
     train_loss = []
     validation_loss = []
-    validation_accuracy = []
+    validation_f1_scores = []
     loss_fn = nn.CrossEntropyLoss()
 
     # Training
@@ -121,8 +122,9 @@ if __name__ == "__main__":
             progress_bar.update(1)
         train_loss.append(train_last_loss)
         # Validation
-        correct = 0
         model.eval()
+        all_labels = []
+        all_preds = []
         for i, batch in enumerate(val_dataloader):
             batch = {k: v.to(device) for k, v in batch.items()}
             with torch.no_grad():
@@ -134,11 +136,18 @@ if __name__ == "__main__":
 
             test_last_loss = test_batch_loss / batch_size
 
-            correct += (logits.argmax(1) == batch['labels']).sum().item()
-            last_validation_accuracy = correct/((i + 1) * batch_size)
+            preds = logits.argmax(1)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(batch['labels'].cpu().numpy())
 
         validation_loss.append(test_last_loss)
-        validation_accuracy.append(last_validation_accuracy)
+        validation_f1 = f1_score(all_labels, all_preds, average='weighted')
+        validation_f1_scores.append(validation_f1)
+
+        # Save the model if the performance on the development set increases
+        if len(validation_f1_scores) > 1 and validation_f1_scores[-1] > max(validation_f1_scores[:-1]):
+            print(f"Saving model with F1 score {validation_f1_scores[-1]}")
+            torch.save(model.state_dict(), output_model_name)
 
     plt.plot(range(1, num_train_epochs + 1), train_loss, label="Training Loss")
     plt.plot(range(1, num_train_epochs + 1), validation_loss, label="Validation Loss")
@@ -148,8 +157,48 @@ if __name__ == "__main__":
     plt.legend(loc="upper left")
     plt.show()
 
-    plt.plot(range(1, num_train_epochs + 1), validation_accuracy, label="Validation Accuracy")
-    plt.title("Accuracy")
+    plt.plot(range(1, num_train_epochs + 1), validation_f1_scores, label="Validation F1 Score")
+    plt.title("F1 Score")
     plt.xlabel("Epochs")
-    plt.ylabel("Validation Accuracy")
+    plt.ylabel("Validation F1 Score")
     plt.show()
+
+    # Evaluate the model
+    best_model = torch.load(output_model_name)
+
+    # Tokenize the test dataset
+    test_dataset = Dataset.from_pandas(test_dataset.reset_index(drop=True))
+    test_tokenized_datasets = test_dataset.map(tokenize_function, batched=True)
+    test_tokenized_datasets = test_tokenized_datasets.remove_columns(["comment_text"])
+    test_tokenized_datasets = test_tokenized_datasets.rename_column("conspiratorial", "labels")
+    test_tokenized_datasets.set_format("torch")
+
+    # Create a DataLoader for the test dataset
+    test_dataloader = DataLoader(test_tokenized_datasets, batch_size=batch_size)
+
+    # Load the best model
+    best_model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=len(labels))
+    best_model.load_state_dict(torch.load(output_model_name))
+    best_model.to(device)
+    best_model.eval()
+
+    # Evaluate the model on the test set
+    all_labels = []
+    all_preds = []
+    for i, batch in enumerate(test_dataloader):
+        batch = {k: v.to(device) for k, v in batch.items()}
+        with torch.no_grad():
+            outputs = best_model(**batch)
+
+        logits = outputs.logits
+        preds = logits.argmax(1)
+        all_preds.extend(preds.cpu().numpy())
+        all_labels.extend(batch['labels'].cpu().numpy())
+
+    # Calculate the F1 score
+    test_f1 = f1_score(all_labels, all_preds, average='weighted')
+    print(f"Test F1 Score: {test_f1}")
+
+    # Print the classification report
+    print(classification_report(all_labels, all_preds))
+
