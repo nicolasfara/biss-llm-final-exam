@@ -11,3 +11,4 @@ emoji ==2.12.1
 evaluate ==0.4.0
 datasets ==2.20.0
 numexpr==2.8.4
+seaborn==0.13.2
