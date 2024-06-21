@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score
 from tqdm.auto import tqdm
 
+
+
 model_name = "Musixmatch/umberto-commoncrawl-cased-v1"
 # Maximum length to be considered in input
 max_seq_length = 256
@@ -23,6 +25,7 @@ batch_size = 32
 # If you use large models (such as Bert-large) it is a good idea to use
 # smaller values, such as 5e-6
 learning_rate = 5e-6
+
 # Name of the fine_tuned_model
 output_model_name = "best_model.pickle"
 # Number of training epochs
@@ -44,10 +47,15 @@ if __name__ == "__main__":
     dataset = retrieve_data_as_dataframe(
         "https://raw.githubusercontent.com/nicolasfara/biss-llm-final-exam/master/data/acti-a/subtaskA_train.csv"
     )
+    test_dataset = retrieve_data_as_dataframe(
+        "https://raw.githubusercontent.com/nicolasfara/biss-llm-final-exam/master/data/acti-a/subtaskA_test_with_labels.csv"
+    )
     # Clean the text
     cleaned_dataset = dataset.copy()
     cleaned_dataset["comment_text"] = cleaned_dataset["comment_text"].apply(cleanup_text)
+    test_dataset["comment_text"] = test_dataset["comment_text"].apply(cleanup_text)
     cleaned_dataset.drop(columns=["Id"], inplace=True)
+    test_dataset.drop(columns=["Id"], inplace=True)
     labels = cleaned_dataset["conspiratorial"].unique()
 
     # Split the dataset into training, validation, and testing (using scikitlean)
@@ -55,10 +63,16 @@ if __name__ == "__main__":
     val_size = 0.1
     test_size = 0.1
 
-    train_dataset, val_dataset, test_dataset = np.split(
+    # train_dataset, val_dataset, test_dataset = np.split(
+    #     cleaned_dataset.sample(frac=1, random_state=seed_val),
+    #     [int(train_size * len(cleaned_dataset)), int((train_size + val_size) * len(cleaned_dataset))],
+    # )
+    
+    train_dataset, val_dataset = np.split(
         cleaned_dataset.sample(frac=1, random_state=seed_val),
-        [int(train_size * len(cleaned_dataset)), int((train_size + val_size) * len(cleaned_dataset))],
+        [int(train_size * len(cleaned_dataset))],
     )
+    
 
     print(f"Train size: {len(train_dataset)}")
     print(f"Validation size: {len(val_dataset)}")
