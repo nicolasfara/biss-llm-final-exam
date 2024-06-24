@@ -3,7 +3,7 @@ from datasets import Dataset
 import torch.nn as nn
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, get_scheduler
 from preprocessing import *
-from torch.optim import AdamW
+from torch.optim import AdamW, Adam
 import time
 from utils import *
 import evaluate
@@ -24,12 +24,13 @@ batch_size = 32
 # Learning rate used during the training process
 # If you use large models (such as Bert-large) it is a good idea to use
 # smaller values, such as 5e-6
-learning_rate = 5e-6
+learning_rate = 2e-5
+# learning_rate = 5e-6
 
 # Name of the fine_tuned_model
 output_model_name = "best_model.pickle"
 # Number of training epochs
-num_train_epochs = 30
+num_train_epochs = 4
 
 
 if __name__ == "__main__":
@@ -45,14 +46,17 @@ if __name__ == "__main__":
 
     device = setup_torch()
     dataset = retrieve_data_as_dataframe(
-        "https://raw.githubusercontent.com/nicolasfara/biss-llm-final-exam/master/data/acti-a/subtaskA_train.csv"
+        "data/acti-a/subtaskA_train.csv"
     )
     test_dataset = retrieve_data_as_dataframe(
-        "https://raw.githubusercontent.com/nicolasfara/biss-llm-final-exam/master/data/acti-a/subtaskA_test_with_labels.csv"
+        "data/acti-a/subtaskA_test.csv"
     )
+
+
     # Clean the text
     cleaned_dataset = dataset.copy()
     cleaned_dataset["comment_text"] = cleaned_dataset["comment_text"].apply(cleanup_text)
+
     test_dataset["comment_text"] = test_dataset["comment_text"].apply(cleanup_text)
     cleaned_dataset.drop(columns=["Id"], inplace=True)
     test_dataset.drop(columns=["Id"], inplace=True)
@@ -67,16 +71,17 @@ if __name__ == "__main__":
     #     cleaned_dataset.sample(frac=1, random_state=seed_val),
     #     [int(train_size * len(cleaned_dataset)), int((train_size + val_size) * len(cleaned_dataset))],
     # )
-    
+
     train_dataset, val_dataset = np.split(
         cleaned_dataset.sample(frac=1, random_state=seed_val),
         [int(train_size * len(cleaned_dataset))],
     )
-    
+
 
     print(f"Train size: {len(train_dataset)}")
     print(f"Validation size: {len(val_dataset)}")
     print(f"Test size: {len(test_dataset)}")
+
 
     # Define a Tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -104,8 +109,17 @@ if __name__ == "__main__":
 
     num_training_steps = num_train_epochs * len(train_dataloader)
     lr_scheduler = get_scheduler(
-        name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps
+        name="constant", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps
     )
+
+    # TYPE_TO_SCHEDULER_FUNCTION = {
+    # SchedulerType.LINEAR: get_linear_schedule_with_warmup,
+    # SchedulerType.COSINE: get_cosine_schedule_with_warmup,
+    # SchedulerType.COSINE_WITH_RESTARTS: get_cosine_with_hard_restarts_schedule_with_warmup,
+    # SchedulerType.POLYNOMIAL: get_polynomial_decay_schedule_with_warmup,
+    # SchedulerType.CONSTANT: get_constant_schedule,
+    # SchedulerType.CONSTANT_WITH_WARMUP: get_constant_schedule_with_warmup,
+    #}
 
     model.to(device)
 
