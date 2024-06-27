@@ -20,7 +20,7 @@ max_seq_length = 256
 # evaluating the model during training
 dev_perc = 0.1
 # Batch size
-batch_size = 32
+batch_size = 16
 # Learning rate used during the training process
 # If you use large models (such as Bert-large) it is a good idea to use
 # smaller values, such as 5e-6
