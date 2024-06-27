@@ -8,9 +8,9 @@ import time
 from utils import *
 import evaluate
 import matplotlib.pyplot as plt
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, confusion_matrix
 from tqdm.auto import tqdm
-
+import seaborn as sns
 
 
 model_name = "Musixmatch/umberto-commoncrawl-cased-v1"
@@ -183,13 +183,15 @@ if __name__ == "__main__":
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.legend(loc="upper left")
-    plt.show()
+    plt.savefig('encoder-only-loss.pdf')
+    plt.close()
 
     plt.plot(range(1, num_train_epochs + 1), validation_f1_scores, label="Validation F1 Score")
     plt.title("F1 Score")
     plt.xlabel("Epochs")
     plt.ylabel("Validation F1 Score")
-    plt.show()
+    plt.savefig('encoder-only-f1.pdf')
+    plt.close()
 
     # Evaluate the model
     best_model = torch.load(output_model_name)
@@ -230,3 +232,15 @@ if __name__ == "__main__":
     # Print the classification report
     print(classification_report(all_labels, all_preds))
 
+    # Confusion matrix
+    cm = confusion_matrix(all_labels, all_preds).tolist()
+    sns.heatmap(cm,
+                annot=True,
+                fmt='g',
+                xticklabels=['Non-Conspiratorial', 'Conspiratorial'],
+                yticklabels=['Non-Conspiratorial', 'Conspiratorial'],
+               )
+    plt.xlabel('Predicted',fontsize=13)
+    plt.ylabel('Actual',fontsize=13)
+    plt.title('Confusion Matrix',fontsize=17)
+    plt.savefig('encoder-only-confusion-matrix.pdf', dpi=500)
