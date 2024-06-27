@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from tqdm.auto import tqdm
 from torch.utils.data import Dataset, DataLoader
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, confusion_matrix
 from transformers import (set_seed,
                           TrainingArguments,
                           Trainer,
@@ -25,6 +25,7 @@ import time
 from utils import *
 import evaluate
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # model_name = "openai-community/gpt2"
 # model_name = "ruggsea/gpt-ita-fdi_lega"
@@ -208,7 +209,8 @@ if __name__ == "__main__":
     plt.ylabel("Loss")
     plt.legend(loc="upper left")
     plt.show()
-    plt.savefig('Loss.pdf')
+    plt.savefig('decoder-only-loss.pdf')
+    plt.close()
     
 
     plt.plot(range(1, num_train_epochs + 1), validation_f1_scores, label="Validation F1 Score")
@@ -216,8 +218,8 @@ if __name__ == "__main__":
     plt.xlabel("Epochs")
     plt.ylabel("Validation F1 Score")
     plt.show()
-    plt.savefig('F1Score.pdf')
-    
+    plt.savefig('decoder-only-F1Score.pdf')
+    plt.close()
 
     # Evaluate the model
     best_model = torch.load(output_model_name)
@@ -262,4 +264,17 @@ if __name__ == "__main__":
 
     # Print the classification report
     print(classification_report(all_labels, all_preds))
+
+    # Confusion matrix
+    cm = confusion_matrix(all_labels, all_preds).tolist()
+    sns.heatmap(cm,
+                annot=True,
+                fmt='g',
+                xticklabels=['Non-Conspiratorial', 'Conspiratorial'],
+                yticklabels=['Non-Conspiratorial', 'Conspiratorial'],
+               )
+    plt.xlabel('Predicted',fontsize=13)
+    plt.ylabel('Actual',fontsize=13)
+    plt.title('Confusion Matrix',fontsize=17)
+    plt.savefig('decoder-only-confusion-matrix.pdf', dpi=500)
 
