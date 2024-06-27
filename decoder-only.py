@@ -70,6 +70,7 @@ if __name__ == "__main__":
     cleaned_dataset = dataset.copy()
     cleaned_dataset["comment_text"] = cleaned_dataset["comment_text"].apply(cleanup_text)
     cleaned_dataset.drop(columns=["Id"], inplace=True)
+    test_dataset["comment_text"] = test_dataset["comment_text"].apply(cleanup_text)
     test_dataset.drop(columns=["Id"], inplace=True)
     labels = cleaned_dataset["conspiratorial"].unique()
 
