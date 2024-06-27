@@ -46,10 +46,10 @@ if __name__ == "__main__":
 
     device = setup_torch()
     dataset = retrieve_data_as_dataframe(
-        "data/acti-a/subtaskA_train.csv"
+        "https://raw.githubusercontent.com/nicolasfara/biss-llm-final-exam/master/data/acti-a/subtaskA_train.csv"
     )
     test_dataset = retrieve_data_as_dataframe(
-        "data/acti-a/subtaskA_test.csv"
+        "https://raw.githubusercontent.com/nicolasfara/biss-llm-final-exam/master/data/acti-a/subtaskA_test.csv"
     )
 
 
