@@ -19,11 +19,13 @@ def cleanup_text(text: str, remove_punct: bool = False) -> str:
     # # Remove extra whitespace
     # text = re.sub(r'\s+', ' ', text).strip()
     # return text
+    text = re.sub(",", " ", text)  # Remove @ sign
     text = re.sub(r'\s+', ' ', text).strip()
     text = re.sub("@[A-Za-z0-9]+", "", text)  # Remove @ sign
+    
     text = re.sub(r"(?:@|http?://|https?://|www)\S+", "", text)  # Remove http links
-    text = " ".join(text.split())
+    #text = " ".join(text.split())
     # text = ''.join(c for c in text if c not in emoji.EMOJI_DATA.items())  # Remove Emojis
     text = text.replace("#", "").replace("_", " ")  # Remove hashtag sign but keep the text
-    text = " ".join(w for w in nltk.wordpunct_tokenize(text) if w.lower() in text or not w.isalpha())
+    #text = " ".join(w for w in nltk.wordpunct_tokenize(text) if w.lower() in text or not w.isalpha())
     return text
